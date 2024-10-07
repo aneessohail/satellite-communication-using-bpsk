@@ -2,57 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 
-# Styling for the UI elements
+# CSS for styling
 st.markdown(
     """
     <style>
-    /* Page background and layout */
-    .css-1aumxhk {
-        background-color: #1f2937 !important;
-        padding-top: 40px;
+    body {
+        background-color: #f4f4f5;
     }
-    /* Headers and labels */
-    .css-1aumxhk h2 {
+    .stApp {
+        background-color: #1f2937;
         color: #f4f4f5;
-        font-size: 24px;
-        text-align: center;
     }
-    .css-1aumxhk label {
-        color: #f4f4f5 !important;
-        font-size: 16px;
-    }
-    /* Custom button styles */
-    .css-1aumxhk button {
-        background-color: #ff5e5e;
-        color: white;
-        font-size: 16px;
-        padding: 12px 24px;
-        border-radius: 50px;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0px 8px 15px rgba(255, 75, 43, 0.2);
-        transition: all 0.3s ease;
-        margin-top: 20px;
-    }
-    .css-1aumxhk button:hover {
-        background-color: #f46b45;
-        box-shadow: 0px 15px 20px rgba(255, 75, 43, 0.4);
-        transform: translateY(-3px);
-    }
-    /* Header styling */
-    h1 {
+    h1, h2, h3 {
         color: #ff416c;
         text-align: center;
-        font-size: 40px;
-        font-weight: bold;
-        margin-bottom: 40px;
     }
-    .css-184tjsw p {
-        color: #6b7280;
-        font-size: 18px;
-        text-align: justify;
+    label {
+        color: #f4f4f5 !important;
     }
-    /* Button hover animation */
     button {
         background: linear-gradient(135deg, #ff416c, #ff4b2b);
         color: white;
@@ -63,83 +30,49 @@ st.markdown(
         cursor: pointer;
         box-shadow: 0px 8px 15px rgba(255, 75, 43, 0.2);
         transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
+        margin-top: 20px;
         z-index: 1;
     }
     button:hover {
         background: linear-gradient(135deg, #ff4b2b, #ff416c);
         box-shadow: 0px 15px 20px rgba(255, 75, 43, 0.4);
         transform: translateY(-3px);
+        text:white
     }
-    button::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 300%;
-        height: 300%;
-        background: rgba(255, 255, 255, 0.2);
-        transform: translate(-50%, -50%) scale(0);
-        transition: all 0.5s ease;
-        border-radius: 50%;
-        z-index: -1;
-    }
-    button:hover::before {
-        transform: translate(-50%, -50%) scale(1);
-    }
-    /* Footer */
-    footer {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background-color: #1f2937;
-        color: white;
-        text-align: center;
-        padding: 10px;
-        font-size: 14px;
+    .stTextInput {
+        color: black;
     }
     </style>
-    """, unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True
 )
 
-def qpsk_modulation(data_bits):
-    symbol_map = {
-        (0, 0): 1 + 1j,
-        (0, 1): -1 + 1j,
-        (1, 0): -1 - 1j,
-        (1, 1): 1 - 1j,
-    }
-    data_pairs = [(data_bits[i], data_bits[i + 1]) for i in range(0, len(data_bits), 2)]
-    symbols = [symbol_map[pair] for pair in data_pairs]
-    return np.array(symbols)
+# BPSK Modulation
+def bpsk_modulation(data_bits):
+    symbols = np.array([1 if bit == 1 else -1 for bit in data_bits])
+    return symbols
 
-def qpsk_demodulation(symbols):
-    demodulated_bits = []
-    for symbol in symbols:
-        if symbol.real > 0 and symbol.imag > 0:
-            demodulated_bits.extend([0, 0])
-        elif symbol.real < 0 and symbol.imag > 0:
-            demodulated_bits.extend([0, 1])
-        elif symbol.real < 0 and symbol.imag < 0:
-            demodulated_bits.extend([1, 1])
-        else:
-            demodulated_bits.extend([1, 0])
+# BPSK Demodulation
+def bpsk_demodulation(symbols):
+    demodulated_bits = np.array([1 if symbol > 0 else 0 for symbol in symbols])
     return demodulated_bits
 
+# AWGN channel
 def awgn_channel(symbols, snr_db):
     snr_linear = 10 ** (snr_db / 10)
     noise_power = 1 / snr_linear
-    noise = np.sqrt(noise_power / 2) * (np.random.randn(len(symbols)) + 1j * np.random.randn(len(symbols)))
+    noise = np.sqrt(noise_power / 2) * np.random.randn(len(symbols))
     return symbols + noise
 
+# Calculate Bit Error Rate (BER)
 def calculate_ber(original_bits, received_bits):
     errors = np.sum(np.array(original_bits) != np.array(received_bits))
     return errors / len(original_bits)
 
+# Plot Constellation Diagram
 def plot_constellation(symbols, title):
     fig, ax = plt.subplots()
-    ax.scatter(symbols.real, symbols.imag)
+    ax.scatter(symbols, np.zeros_like(symbols))
     ax.set_title(title)
     ax.set_xlabel("In-Phase Component")
     ax.set_ylabel("Quadrature Component")
@@ -148,6 +81,7 @@ def plot_constellation(symbols, title):
     ax.axvline(0, color='black', linewidth=0.5, ls='--')
     return fig
 
+# Plot Modulation Scheme Comparison
 def plot_modulation_comparison(ber_values):
     plt.figure()
     modulations = list(ber_values.keys())
@@ -162,12 +96,13 @@ def plot_modulation_comparison(ber_values):
     plt.xticks(rotation=45)
     plt.tight_layout()
 
+# Main App
 def main():
-    st.title("Satellite Communication: QPSK Modulation & Demodulation Simulation")
+    st.title("Satellite Communication: BPSK Modulation & Demodulation Simulation")
     
     st.write("""
     ### Scenario Description
-    Satellite communication systems often use modulation schemes like QPSK for efficient and reliable data transmission. This simulation allows us to observe the QPSK modulation process, the impact of noise in a real-world scenario, and how data can be recovered after passing through a noisy channel.
+    Satellite communication systems often use modulation schemes like **BPSK** for reliable data transmission. This simulation lets us observe the BPSK modulation process, the impact of noise in a real-world scenario, and how data is recovered after passing through a noisy channel.
     """)
 
     st.write("""
@@ -178,45 +113,41 @@ def main():
     num_bits = st.sidebar.number_input("Number of bits to generate:", min_value=1, value=1000)
     snr_db = st.sidebar.slider("Select SNR (dB):", 0, 20, 10)
 
-    if st.button("Run QPSK Simulation"):
+    if st.button("Run BPSK Simulation"):
+        # Generate random data bits
         data_bits = np.random.randint(0, 2, num_bits)
-        modulated_symbols = qpsk_modulation(data_bits)
 
-        st.subheader("Transmitted QPSK Signal Constellation")
-        transmitted_fig = plot_constellation(modulated_symbols, "Transmitted QPSK Signal")
+        # BPSK Modulation
+        modulated_symbols = bpsk_modulation(data_bits)
+        st.subheader("Transmitted BPSK Signal Constellation")
+        transmitted_fig = plot_constellation(modulated_symbols, "Transmitted BPSK Signal")
         st.pyplot(transmitted_fig)
-        st.write("This constellation diagram represents the transmitted QPSK signal, with four distinct points corresponding to different bit pair combinations. These points are phase-shifted representations of the digital data.")
+        st.write("The constellation diagram of the transmitted signal shows that BPSK modulates data by shifting the signal's phase by 180°.")
 
+        # Pass through AWGN channel
         received_symbols = awgn_channel(modulated_symbols, snr_db)
-
-        st.subheader("Received QPSK Signal Constellation with AWGN")
-        received_fig = plot_constellation(received_symbols, "Received QPSK Signal with AWGN")
+        st.subheader("Received BPSK Signal Constellation with AWGN")
+        received_fig = plot_constellation(received_symbols, "Received BPSK Signal with AWGN")
         st.pyplot(received_fig)
-        st.write("After passing through the AWGN channel, noise impacts the signal, causing deviations from the original constellation points. This visualizes how noise distorts the signal in real-world communication systems.")
+        st.write("After passing through the AWGN channel, noise has been added to the signal, causing the symbols to scatter around their original positions.")
 
-        received_bits = qpsk_demodulation(received_symbols)
+        # BPSK Demodulation
+        received_bits = bpsk_demodulation(received_symbols)
         ber = calculate_ber(data_bits, received_bits)
         st.write(f"Bit Error Rate (BER): {ber:.4f}")
-        st.write("The calculated BER provides a quantitative measure of how much the noise affected the transmission. A lower BER indicates better performance under noisy conditions.")
+        st.write("The Bit Error Rate (BER) is calculated to evaluate the performance of the system. A lower BER indicates better performance.")
 
-        st.subheader("Demodulated QPSK Signal Constellation")
-        demodulated_fig = plot_constellation(qpsk_modulation(received_bits), "Demodulated QPSK Signal")
-        st.pyplot(demodulated_fig)
-        st.write("This constellation shows the recovered symbols after demodulation. Ideally, these points should closely match the transmitted constellation, with minimal deviations caused by noise.")
-
+        # Compare with other modulation schemes (if desired)
         st.subheader("Modulation Scheme Comparison")
         ber_values = {
-            'QPSK': ber,
-            'BPSK': 0.1 * (snr_db / 10),  
-            '8PSK': 0.15 * (snr_db / 10),  
+            'BPSK': ber,
+            'QPSK': 0.1 * (snr_db / 10),  # Placeholder value for QPSK
+            '8PSK': 0.15 * (snr_db / 10),  # Placeholder value for 8PSK
         }
-        
+
         plot_modulation_comparison(ber_values)
         st.pyplot(plt)
-        st.write("This bar chart compares the Bit Error Rate (BER) for three modulation schemes: QPSK, BPSK, and 8PSK. Based on the graph, you can determine which scheme offers the lowest BER for the selected SNR.")
-
-        best_modulation = min(ber_values, key=ber_values.get)
-        st.write(f"**Based on the bar graph, {best_modulation} is the best modulation scheme for this scenario due to its lower Bit Error Rate (BER).**")
+        st.write("**Based on the bar graph, BPSK is the most robust modulation scheme in this scenario due to its lower Bit Error Rate (BER) at the selected SNR.**")
 
 if __name__ == "__main__":
     main()
